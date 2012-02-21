@@ -69,7 +69,7 @@ class TestUtils(PTGTestCase):
     def test_getDisplayAdapter(self):
         gadapter = getGalleryAdapter(self.portal['test_gallery'],
                                      TestRequest())
-        alsoProvides(IAttributeAnnotatable, gadapter.request)
+        alsoProvides(gadapter.request, IAttributeAnnotatable)
         displayer = getDisplayAdapter(gadapter)
         self.failUnless(displayer.name == 'slideshow')
         self.failUnless(gadapter.settings.display_type == 'slideshow')
