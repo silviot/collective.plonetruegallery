@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.3.4 (UNRELEASED)
+------------------
+
+- fix error with unicode-titled images
+  [silviot]
+
 1.3.3 (2011-09-28)
 ------------------
 

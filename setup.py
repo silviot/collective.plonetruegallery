@@ -1,6 +1,12 @@
 from setuptools import setup, find_packages
 import os
 
+try:
+    import json
+    NEEDS_JSON=False
+except ImportError:
+    NEEDS_JSON=True
+
 version = "1.3.4dev"
 
 setup(name='collective.plonetruegallery',
@@ -27,7 +33,7 @@ setup(name='collective.plonetruegallery',
       install_requires=[
           'setuptools',
           'plone.app.z3cform'
-      ],
+      ] + ['simplejson'] * NEEDS_JSON,
       extras_require=dict(
           tests=[
             'flickrapi',

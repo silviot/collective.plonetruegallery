@@ -14,11 +14,10 @@ from zope.component import getMultiAdapter
 from Products.Five import BrowserView
 from collective.plonetruegallery.utils import getGalleryAdapter
 from collective.plonetruegallery.utils import createSettingsFactory
-
-
-def jsbool(val):
-    return str(val).lower()
-
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
 class BaseDisplayType(BrowserView):
     implements(IDisplayType)
@@ -188,34 +187,24 @@ class SlideshowDisplayType(BaseDisplayType):
         }
 
     def assemble_image(self, image):
-        if not image['description']:
-            image['description'] = image['title']
-
-        image['description'] = image['description'].replace('"', "'")\
-                                                   .replace("\n", " ")\
-                                                   .replace("\r", " ")
-
-        if not self.settings.link_to_image:
-            return_value = """'%(image_url)s': {
-    caption: "%(description)s",
-    thumbnail: "%(thumb_url)s"}""" % image
-        else:
-            return_value = """'%(image_url)s': {
-    href: "%(link)s",
-    caption: "%(description)s",
-    thumbnail: "%(thumb_url)s" }""" % image
+        return_value = dict(thumbnail=image['thumb_url'])
+        return_value['caption'] = image['description'] or image['title']
+        if self.settings.link_to_image:
+            return_value['href'] = image['link']
         return return_value
 
     def image_data(self):
+        "Build a json string representing all our images"
         assemble = self.assemble_image
-        data = [assemble(image) for image in self.adapter.cooked_images]
-        return "{%s}" % (
-            ','.join(data)
-        )
+        data = dict([
+            (image['image_url'], assemble(image))
+            for image in self.adapter.cooked_images
+        ])
+        return json.dumps(data)
 
     def javascript(self):
         width, height = self.get_width_and_height()
-        return """
+        return u"""
   <script type="text/javascript"
     src="%(staticFiles)s/slideshow/js/mootools-1.3.1-core.js"></script>
   <script type="text/javascript"
@@ -246,11 +235,11 @@ var myShow = new %(class)s('show', data, {
         """ % {
             'data': self.image_data(),
             'class': self.settings.slideshow_effect.split(':')[1],
-            'show_carousel': jsbool(self.settings.show_slideshow_carousel),
-            'show_infopane': jsbool(self.settings.show_slideshow_infopane),
+            'show_carousel': json.dumps(self.settings.show_slideshow_carousel),
+            'show_infopane': json.dumps(self.settings.show_slideshow_infopane),
             'width': width,
             'height': height,
-            'paused': jsbool((not self.settings.timed)),
+            'paused': json.dumps((not self.settings.timed)),
             'delay': self.settings.delay,
             'duration': self.settings.duration,
             'slide': self.start_image_index,
@@ -275,7 +264,7 @@ class FancyBoxDisplayType(BatchingDisplayType):
         self.staticFiles += '/jquery.fancybox/fancybox'
 
     def javascript(self):
-        return """
+        return u"""
 <script type="text/javascript"
     src="%(staticFiles)s/jquery.easing-1.3.pack.js"></script>
 <script type="text/javascript"
@@ -329,7 +318,7 @@ class HighSlideDisplayType(BatchingDisplayType):
     )
 
     def css(self):
-        return """
+        return u"""
 <link rel="stylesheet" type="text/css"
     href="%(staticFiles)s/highslide/highslide.css" />
 """ % {'staticFiles': self.staticFiles}
@@ -349,7 +338,7 @@ class HighSlideDisplayType(BatchingDisplayType):
         else:
             wrapperClassName = "'%s'" % wrapperClassName
 
-        return """
+        return u"""
 <script type="text/javascript"
     src="%(staticFiles)s/highslide/highslide-with-gallery.js"></script>
 
@@ -407,9 +396,9 @@ $(document).ready(function() {
             'outlineType': outlineType,
             'wrapperClassName': wrapperClassName,
             'delay': self.settings.delay,
-            'timed': jsbool(self.settings.timed),
+            'timed': json.dumps(self.settings.timed),
             'duration': self.settings.duration,
-            'start_automatically': jsbool(
+            'start_automatically': json.dumps(
                 self.start_automatically or self.settings.timed),
             'start_index_index': self.start_image_index,
             'staticFiles': self.staticFiles
@@ -426,7 +415,7 @@ class GallerifficDisplayType(BaseDisplayType):
         default=u"Galleriffic")
 
     def css(self):
-        return """
+        return u"""
 <link rel="stylesheet" type="text/css"
     href="%(staticFiles)s/galleriffic/css/style.css" />
 
@@ -459,7 +448,7 @@ ul.thumbs li{
         }
 
     def javascript(self):
-        return """
+        return u"""
 <script type="text/javascript"
     src="%(staticFiles)s/galleriffic/js/jquery.galleriffic.js"></script>
 <script type="text/javascript"
@@ -545,7 +534,7 @@ $(document).ready(function() {
 </script>
 """ % {
     'staticFiles': self.staticFiles,
-    'timed': jsbool(self.settings.timed),
+    'timed': json.dumps(self.settings.timed),
     'delay': self.settings.delay,
     'duration': self.settings.duration,
     'batch_size': self.settings.batch_size
